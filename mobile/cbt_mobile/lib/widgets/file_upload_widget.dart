@@ -4,13 +4,17 @@ import 'package:flutter/material.dart';
 
 class FileUploadWidget extends StatefulWidget {
   final int maxFiles;
-  final List<File>? initialFiles;
-  final ValueChanged<List<File>> onFilesChanged;
+  final List<String>? allowedMimeTypes;
+  final int maxBytes;
+  final List<String>? initialPaths;
+  final ValueChanged<List<String>> onFilesChanged;
 
   const FileUploadWidget({
     super.key,
     required this.maxFiles,
-    this.initialFiles,
+    this.allowedMimeTypes,
+    this.maxBytes = 0,
+    this.initialPaths,
     required this.onFilesChanged,
   });
 
@@ -19,44 +23,64 @@ class FileUploadWidget extends StatefulWidget {
 }
 
 class _FileUploadWidgetState extends State<FileUploadWidget> {
-  final List<File> _files = [];
+  final List<String> _paths = [];
+  String? _warning;
 
   @override
   void initState() {
     super.initState();
-    if (widget.initialFiles != null) {
-      _files.addAll(widget.initialFiles!);
-    }
-  }
-
-  @override
-  void didUpdateWidget(FileUploadWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Usually handled by parent using unique Key per question, but let's sync just in case
-    if (widget.initialFiles != null && oldWidget.initialFiles != widget.initialFiles) {
-      _files.clear();
-      _files.addAll(widget.initialFiles!);
+    if (widget.initialPaths != null) {
+      _paths.addAll(widget.initialPaths!);
     }
   }
 
   Future<void> _pick() async {
-    final res = await FilePicker.platform.pickFiles(allowMultiple: widget.maxFiles > 1);
-    if (res == null) return;
-    final picked = res.files
-        .where((f) => f.path != null)
-        .map((f) => File(f.path!))
-        .toList();
+    final allowed = widget.allowedMimeTypes;
+    final extensions = allowed != null && allowed.isNotEmpty
+        ? allowed.map((m) {
+            if (m == 'image/*') return 'jpg,png,gif,bmp,webp';
+            if (m == 'application/pdf') return 'pdf';
+            return null;
+          }).whereType<String>().join(',')
+        : null;
 
-    setState(() {
-      _files.clear();
-      _files.addAll(picked.take(widget.maxFiles <= 0 ? 1 : widget.maxFiles));
-    });
-    widget.onFilesChanged(List<File>.from(_files));
+    final res = await FilePicker.platform.pickFiles(
+      allowMultiple: widget.maxFiles > 1,
+      type: extensions != null ? FileType.custom : FileType.any,
+      allowedExtensions: extensions?.split(','),
+    );
+    if (res == null) return;
+
+    for (final f in res.files) {
+      if (f.path == null) continue;
+
+      // Check size constraint
+      if (widget.maxBytes > 0 && f.size > widget.maxBytes) {
+        final maxMB = (widget.maxBytes / (1024 * 1024)).toStringAsFixed(1);
+        setState(() => _warning = 'File "${f.name}" exceeds ${maxMB}MB limit.');
+        continue;
+      }
+
+      if (_paths.length >= widget.maxFiles) break;
+      if (!_paths.contains(f.path!)) {
+        _paths.add(f.path!);
+      }
+    }
+
+    setState(() {});
+    widget.onFilesChanged(List<String>.from(_paths));
   }
 
   @override
   Widget build(BuildContext context) {
     final maxFiles = widget.maxFiles <= 0 ? 1 : widget.maxFiles;
+    final info = <String>[];
+    if (widget.allowedMimeTypes != null && widget.allowedMimeTypes!.isNotEmpty) {
+      info.add('Types: ${widget.allowedMimeTypes!.join(", ")}');
+    }
+    if (widget.maxBytes > 0) {
+      info.add('Max: ${(widget.maxBytes / (1024 * 1024)).toStringAsFixed(1)} MB');
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,30 +88,43 @@ class _FileUploadWidgetState extends State<FileUploadWidget> {
         Row(
           children: [
             ElevatedButton(
-              onPressed: _pick,
+              onPressed: _paths.length < maxFiles ? _pick : null,
               child: Text(maxFiles > 1 ? "Select files" : "Select file"),
             ),
             const SizedBox(width: 12),
             Text(
-              "Max: $maxFiles",
+              "${_paths.length}/$maxFiles selected",
               style: TextStyle(color: Colors.grey[600]),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        if (_files.isEmpty)
+        if (info.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(info.join(' · '), style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+          ),
+        if (_warning != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(_warning!, style: const TextStyle(color: Colors.orange, fontSize: 13)),
+          ),
+        const SizedBox(height: 8),
+        if (_paths.isEmpty)
           Text("No file selected.", style: TextStyle(color: Colors.grey[600]))
         else
-          ..._files.map((f) => ListTile(
+          ..._paths.map((p) => ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title: Text(f.path.split(Platform.pathSeparator).last),
-                subtitle: Text(f.path),
+                title: Text(p.split(Platform.pathSeparator).last),
+                subtitle: Text(p, maxLines: 1, overflow: TextOverflow.ellipsis),
                 trailing: IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () {
-                    setState(() => _files.remove(f));
-                    widget.onFilesChanged(List<File>.from(_files));
+                    setState(() {
+                      _paths.remove(p);
+                      _warning = null;
+                    });
+                    widget.onFilesChanged(List<String>.from(_paths));
                   },
                 ),
               )),

@@ -104,6 +104,19 @@ class Question {
       fileUpload: json['file_upload'] == null ? null : FileUploadConstraints.fromJson(json['file_upload']),
     );
   }
+
+  Question copyWith({List<Option>? options}) {
+    return Question(
+      id: id,
+      type: type,
+      content: content,
+      media: media,
+      options: options ?? this.options,
+      points: points,
+      wordLimit: wordLimit,
+      fileUpload: fileUpload,
+    );
+  }
 }
 
 class Exam {

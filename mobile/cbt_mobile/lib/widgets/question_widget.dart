@@ -10,21 +10,23 @@ class QuestionWidget extends StatelessWidget {
   final Question question;
   final String examDirPath;
   final String? selectedOptionId;
-  final String? initialEssayText;
-  final List<File>? initialFiles;
+  final String? essayText;
   final ValueChanged<String>? onOptionSelected;
   final ValueChanged<String>? onEssayChanged;
-  final ValueChanged<List<File>>? onFilesChanged;
+  final ValueChanged<String>? onEssayEditingComplete;
+  final List<String>? filePaths;
+  final ValueChanged<List<String>>? onFilesChanged;
 
   const QuestionWidget({
     super.key,
     required this.question,
     required this.examDirPath,
     this.selectedOptionId,
-    this.initialEssayText,
-    this.initialFiles,
+    this.essayText,
     this.onOptionSelected,
     this.onEssayChanged,
+    this.onEssayEditingComplete,
+    this.filePaths,
     this.onFilesChanged,
   });
 
@@ -33,11 +35,9 @@ class QuestionWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Question Content (Markdown + LaTeX)
         _buildRichText(question.content),
         const SizedBox(height: 16),
 
-        // Media (Images)
         if (question.media.isNotEmpty)
           ...question.media.map(
             (path) => Padding(
@@ -57,15 +57,18 @@ class QuestionWidget extends StatelessWidget {
           ),
         ] else if (question.type == "essay") ...[
           EssayWidget(
-            initialValue: initialEssayText,
+            initialValue: essayText,
             wordLimit: question.wordLimit,
             onChanged: (txt) => onEssayChanged?.call(txt),
+            onEditingComplete: (txt) => onEssayEditingComplete?.call(txt),
           ),
         ] else if (question.type == "file_upload") ...[
           FileUploadWidget(
             maxFiles: question.fileUpload?.maxFiles ?? 1,
-            initialFiles: initialFiles,
-            onFilesChanged: (files) => onFilesChanged?.call(files),
+            allowedMimeTypes: question.fileUpload?.allowedMimeTypes,
+            maxBytes: question.fileUpload?.maxBytes ?? 0,
+            initialPaths: filePaths,
+            onFilesChanged: (paths) => onFilesChanged?.call(paths),
           ),
         ] else ...[
           Text(
@@ -78,18 +81,12 @@ class QuestionWidget extends StatelessWidget {
   }
 
   Widget _buildRichText(String text) {
-    // Basic parser to separate LaTeX from Markdown
-    // Matches $$...$$
     final regex = RegExp(r'\$\$(.*?)\$\$');
     final matches = regex.allMatches(text);
-
-    if (matches.isEmpty) {
-      return MarkdownBody(data: text);
-    }
+    if (matches.isEmpty) return MarkdownBody(data: text);
 
     List<Widget> children = [];
     int lastEnd = 0;
-
     for (var match in matches) {
       if (match.start > lastEnd) {
         children.add(MarkdownBody(data: text.substring(lastEnd, match.start)));
@@ -97,14 +94,9 @@ class QuestionWidget extends StatelessWidget {
       children.add(Math.tex(match.group(1)!, mathStyle: MathStyle.display));
       lastEnd = match.end;
     }
-
     if (lastEnd < text.length) {
       children.add(MarkdownBody(data: text.substring(lastEnd)));
     }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: children,
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: children);
   }
 }

@@ -4,12 +4,14 @@ class EssayWidget extends StatefulWidget {
   final String? initialValue;
   final int wordLimit;
   final ValueChanged<String> onChanged;
+  final ValueChanged<String>? onEditingComplete;
 
   const EssayWidget({
     super.key,
     this.initialValue,
     required this.wordLimit,
     required this.onChanged,
+    this.onEditingComplete,
   });
 
   @override
@@ -71,6 +73,9 @@ class _EssayWidgetState extends State<EssayWidget> {
             border: const OutlineInputBorder(),
           ),
           onChanged: widget.onChanged,
+          onEditingComplete: widget.onEditingComplete != null
+              ? () => widget.onEditingComplete!(_controller.text)
+              : null,
         ),
         const SizedBox(height: 8),
         Text(

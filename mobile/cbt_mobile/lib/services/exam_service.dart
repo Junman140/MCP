@@ -8,14 +8,38 @@ import 'package:dio/dio.dart';
 import '../models/exam.dart';
 
 class ExamService {
-  final Dio _dio = Dio();
+  final String baseUrl;
+  final String authToken;
+  final String encryptionKey;
+  late final Dio _dio;
 
-  // In a real app, this would be retrieved during the biometric handshake
-  final String _encryptionKey = "this-is-a-32-byte-long-key-1234";
+  ExamService({required this.baseUrl, required this.authToken, required this.encryptionKey}) {
+    _dio = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(minutes: 5),
+    ));
+  }
 
-  Future<Exam> downloadAndDecryptExam(String examId, String authToken) async {
+  /// Creates a Dio instance for one-off API calls (e.g. auth verify).
+  static Dio createDio(String? authToken) {
+    return Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 15),
+      headers: authToken != null ? {'Authorization': 'Bearer $authToken'} : null,
+    ));
+  }
+
+  Future<String> getExamDir(String examId) async {
+    return _getExamDir(examId);
+  }
+
+  Future<String> _getExamDir(String examId) async {
+    final appDocDir = await getApplicationDocumentsDirectory();
+    return '${appDocDir.path}/exams/$examId';
+  }
+
+  Future<Exam> downloadAndDecryptExam(String examId) async {
     final response = await _dio.get(
-      'http://localhost:8080/api/v1/exams/$examId/download',
+      '$baseUrl/api/v1/exams/$examId/download',
       options: Options(
         responseType: ResponseType.bytes,
         headers: {'Authorization': 'Bearer $authToken'},
@@ -25,8 +49,7 @@ class ExamService {
     final Uint8List encryptedData = Uint8List.fromList(response.data);
 
     // 1. Decrypt AES-GCM
-    final key = enc.Key.fromUtf8(_encryptionKey);
-    // Note: The backend implementation uses the first 12 bytes (default GCM nonce size) as nonce
+    final key = enc.Key.fromUtf8(encryptionKey);
     final nonceSize = 12;
     final iv = enc.IV(encryptedData.sublist(0, nonceSize));
     final ciphertext = encryptedData.sublist(nonceSize);
@@ -42,14 +65,13 @@ class ExamService {
     // 2. Unzip the archive
     final archive = ZipDecoder().decodeBytes(decryptedData);
 
-    final appDocDir = await getApplicationDocumentsDirectory();
-    final examDir = Directory('${appDocDir.path}/exams/$examId');
+    final examDir = Directory(await _getExamDir(examId));
     if (await examDir.exists()) {
       await examDir.delete(recursive: true);
     }
     await examDir.create(recursive: true);
 
-    late String examJson;
+    String? examJson;
 
     for (final file in archive) {
       final filename = file.name;
@@ -63,6 +85,10 @@ class ExamService {
           examJson = utf8.decode(data);
         }
       }
+    }
+
+    if (examJson == null) {
+      throw Exception('exam_data.json not found in the exam archive.');
     }
 
     return Exam.fromJson(json.decode(examJson));
