@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import '../../services/lms_auth_service.dart';
 import '../../services/lms_api_client.dart';
 
@@ -11,34 +12,34 @@ class LmsLoginScreen extends StatefulWidget {
 }
 
 class _LmsLoginScreenState extends State<LmsLoginScreen> {
-  final _emailCtrl = TextEditingController();
+  final _matricCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _loading = false;
   String? _error;
 
   Future<void> _login() async {
-    final email = _emailCtrl.text.trim();
+    final matricNo = _matricCtrl.text.trim();
     final password = _passCtrl.text.trim();
-    if (email.isEmpty || password.isEmpty) {
-      setState(() => _error = 'Enter email and password.');
+    if (matricNo.isEmpty || password.isEmpty) {
+      setState(() => _error = 'Enter your matric number and password.');
       return;
     }
     setState(() { _loading = true; _error = null; });
     try {
       LmsApiClient.reset();
-      final res = await LmsApiClient.post('/auth/login', data: {
-        'email': email,
+      final res = await LmsApiClient.post('/student/login', data: {
+        'matricNo': matricNo,
         'password': password,
       });
       final data = res.data as Map<String, dynamic>;
       final token = data['token'] as String?;
       if (token == null) {
-        setState(() => _error = 'Login failed.');
+        setState(() => _error = 'Invalid matric number or password.');
         return;
       }
       final payload = LmsAuthService.decodeToken(token);
       if (payload == null) {
-        setState(() => _error = 'Invalid token.');
+        setState(() => _error = 'Login failed.');
         return;
       }
       await LmsAuthService.saveLogin(
@@ -49,7 +50,12 @@ class _LmsLoginScreenState extends State<LmsLoginScreen> {
       LmsApiClient.reset();
       widget.onLogin();
     } catch (e) {
-      setState(() => _error = 'Connection failed: $e');
+      String msg = 'Connection failed. Check that the server is running.';
+      if (e is DioException && e.response != null) {
+        final body = e.response?.data;
+        if (body is Map) msg = (body['error'] as String?) ?? msg;
+      }
+      setState(() => _error = msg);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -57,7 +63,7 @@ class _LmsLoginScreenState extends State<LmsLoginScreen> {
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
+    _matricCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
   }
@@ -74,12 +80,14 @@ class _LmsLoginScreenState extends State<LmsLoginScreen> {
               Icon(Icons.menu_book, size: 64, color: Theme.of(context).colorScheme.primary),
               const SizedBox(height: 16),
               Text('Student LMS Portal', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text('Sign in with your matric number', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
               const SizedBox(height: 32),
               TextField(
-                controller: _emailCtrl,
-                decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder(), prefixIcon: Icon(Icons.person)),
+                controller: _matricCtrl,
+                decoration: const InputDecoration(labelText: 'Matric Number', hintText: 'e.g. 19/an/ed/ve/0128', border: OutlineInputBorder(), prefixIcon: Icon(Icons.badge)),
                 textInputAction: TextInputAction.next,
-                keyboardType: TextInputType.emailAddress,
+                textCapitalization: TextCapitalization.words,
               ),
               const SizedBox(height: 16),
               TextField(

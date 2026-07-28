@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../services/lms_api_client.dart';
 import 'lms_course_viewer.dart';
+import 'lms_change_password_screen.dart';
 
 class LmsDashboardScreen extends StatelessWidget {
   final VoidCallback onLogout;
-  final VoidCallback onGoToCbt;
+  final VoidCallback? onGoToCbt;
   const LmsDashboardScreen({super.key, required this.onLogout, required this.onGoToCbt});
 
   @override
@@ -13,7 +14,8 @@ class LmsDashboardScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Student Portal'),
         actions: [
-          IconButton(icon: const Icon(Icons.school), tooltip: 'Take Exam (CBT)', onPressed: onGoToCbt),
+          if (onGoToCbt != null)
+            IconButton(icon: const Icon(Icons.school), tooltip: 'Take Exam (CBT)', onPressed: onGoToCbt),
           IconButton(icon: const Icon(Icons.logout), tooltip: 'Sign out', onPressed: onLogout),
         ],
       ),
@@ -86,7 +88,7 @@ class LmsDashboardScreen extends StatelessWidget {
     );
   }
 
-  void _navigate(BuildContext ctx, int idx, VoidCallback logout, VoidCallback cbt) {
+  void _navigate(BuildContext ctx, int idx, VoidCallback logout, VoidCallback? cbt) {
     switch (idx) {
       case 1: Navigator.push(ctx, MaterialPageRoute(builder: (_) => _LmsTasksPage())); break;
       case 2: Navigator.push(ctx, MaterialPageRoute(builder: (_) => _LmsGradesPage())); break;
@@ -208,7 +210,7 @@ class _LmsForumsPage extends StatelessWidget {
 
 class LmsMorePage extends StatelessWidget {
   final VoidCallback onLogout;
-  final VoidCallback onCbt;
+  final VoidCallback? onCbt;
   const LmsMorePage({super.key, required this.onLogout, required this.onCbt});
 
   @override
@@ -225,7 +227,11 @@ class LmsMorePage extends StatelessWidget {
         ListTile(leading: const Icon(Icons.message), title: const Text('Messages'), onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const _LmsMessagesPage()));
         }),
-        ListTile(leading: const Icon(Icons.school), title: const Text('Take Exam (CBT)'), onTap: onCbt),
+        ListTile(leading: const Icon(Icons.key), title: const Text('Change Password'), onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const LmsChangePasswordScreen()));
+        }),
+        if (onCbt != null)
+          ListTile(leading: const Icon(Icons.school), title: const Text('Take Exam (CBT)'), onTap: onCbt),
         const Divider(),
         ListTile(leading: const Icon(Icons.logout, color: Colors.red), title: const Text('Sign Out', style: TextStyle(color: Colors.red)), onTap: onLogout),
       ]),

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'models/exam.dart';
 import 'services/exam_service.dart';
 import 'services/sync_service.dart';
@@ -69,14 +70,19 @@ class _ModeSelectScreenState extends State<ModeSelectScreen> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.school, size: 72, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 8),
-          Text('MCP Platform', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+          Text(kIsWeb ? 'MCP Student Portal' : 'MCP Platform', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 32),
-          SizedBox(width: 240, height: 56, child: FilledButton.icon(
-            icon: const Icon(Icons.assignment),
-            label: const Text('Take Exam (CBT)'),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
-          )),
-          const SizedBox(height: 12),
+
+          // CBT exam-taking is native-only (requires LockTaskMode, TFLite proctoring, certificate pinning)
+          if (!kIsWeb)
+            SizedBox(width: 240, height: 56, child: FilledButton.icon(
+              icon: const Icon(Icons.assignment),
+              label: const Text('Take Exam (CBT)'),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
+            )),
+
+          if (!kIsWeb) const SizedBox(height: 12),
+
           SizedBox(width: 240, height: 56, child: FilledButton.tonalIcon(
             icon: const Icon(Icons.menu_book),
             label: const Text('Student Portal (LMS)'),
@@ -88,7 +94,7 @@ class _ModeSelectScreenState extends State<ModeSelectScreen> {
                       await LmsAuthService.logout();
                       Navigator.popUntil(context, (r) => r.isFirst);
                     },
-                    onGoToCbt: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
+                    onGoToCbt: kIsWeb ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
                   ),
                 ));
               } else {
@@ -101,7 +107,7 @@ class _ModeSelectScreenState extends State<ModeSelectScreen> {
                           await LmsAuthService.logout();
                           Navigator.popUntil(context, (r) => r.isFirst);
                         },
-                        onGoToCbt: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
+                        onGoToCbt: kIsWeb ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
                       ),
                     ));
                   }),

@@ -1,13 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Certificate pinning for CBT backend -->
+    <!-- Production: memeclawai.com with Let's Encrypt SSL via Caddy -->
     <domain-config cleartextTrafficPermitted="false">
-        <!-- In production, pin to your actual server certificate hashes -->
-        <domain includeSubdomains="false">YOUR_PRODUCTION_HOST</domain>
-        <pin-set expiration="2027-01-01">
-            <!-- SHA-256 hash of the server's public key (placeholder — replace with actual) -->
-            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
-        </pin-set>
+        <domain includeSubdomains="true">memeclawai.com</domain>
     </domain-config>
     <!-- Allow cleartext for local development only -->
     <domain-config cleartextTrafficPermitted="true">

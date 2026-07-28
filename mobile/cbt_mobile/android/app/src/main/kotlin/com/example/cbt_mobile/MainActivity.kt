@@ -133,7 +133,7 @@ class MainActivity : FlutterActivity() {
                 info.signingInfo?.apkContentsSigners?.firstOrNull()?.toByteArray()
             } else {
                 @Suppress("DEPRECATION")
-                info.signatures.firstOrNull()?.toByteArray()
+                info.signatures?.firstOrNull()?.toByteArray()
             }
             sig?.let { bytes ->
                 val md = java.security.MessageDigest.getInstance("SHA-256")
