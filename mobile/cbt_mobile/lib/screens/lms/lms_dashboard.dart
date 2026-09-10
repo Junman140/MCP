@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/lms_api_client.dart';
 import 'lms_course_viewer.dart';
 import 'lms_change_password_screen.dart';
+import 'lms_payments_screen.dart';
 
 class LmsDashboardScreen extends StatelessWidget {
   final VoidCallback onLogout;
@@ -218,6 +219,9 @@ class LmsMorePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('More')),
       body: ListView(children: [
+        ListTile(leading: const Icon(Icons.payment), title: const Text('Payments'), onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const LmsPaymentsScreen()));
+        }),
         ListTile(leading: const Icon(Icons.calendar_month), title: const Text('Timetable'), onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const _LmsTimetablePage()));
         }),
