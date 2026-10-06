@@ -281,6 +281,7 @@ class _ExamScreenState extends State<ExamScreen> with SnitchProtocol {
   late final ExamService _examService;
   late final RandomizationEngine _randomizer;
   List<Question> _questions = [];
+  List<Section> _sectionForIndex = [];
   Timer? _timer;
   Duration _remaining = Duration.zero;
   String _examDirPath = '';
@@ -312,10 +313,25 @@ class _ExamScreenState extends State<ExamScreen> with SnitchProtocol {
     try {
       final exam = await _examService.downloadAndDecryptExam(widget.examId);
       final examDir = await _examService.getExamDir(widget.examId);
-      _questions = exam.questions;
-      if (exam.metadata.shuffleQuestions) {
-        _questions = _randomizer.randomizeQuestions(_questions);
+
+      // Flatten the exam's sections into a linear question list while keeping
+      // each question's owning section so we can show section headers. Shuffling
+      // is performed within each section (never across sections).
+      final sections = exam.displaySections;
+      final List<Question> built = [];
+      final List<Section> builtSections = [];
+      final bool globalShuffle = exam.metadata.shuffleQuestions;
+      for (final sec in sections) {
+        var qs = List<Question>.from(sec.questions);
+        final shuffle = sec.shuffleQuestions || globalShuffle;
+        if (shuffle && qs.length > 1) qs = _randomizer.randomizeQuestions(qs);
+        for (final q in qs) {
+          built.add(q);
+          builtSections.add(sec);
+        }
       }
+      _questions = built;
+      _sectionForIndex = builtSections;
       setState(() {
         _exam = exam;
         _examDirPath = examDir;
@@ -470,9 +486,30 @@ class _ExamScreenState extends State<ExamScreen> with SnitchProtocol {
         ? _randomizer.randomizeOptions(question.options)
         : question.options;
 
+    final currentSection = _sectionForIndex.isNotEmpty ? _sectionForIndex[_currentIdx] : null;
+    final showSectionHeader = currentSection != null &&
+        (currentSection.id.isNotEmpty) &&
+        (_currentIdx == 0 || _sectionForIndex[_currentIdx - 1].id != currentSection.id);
+
     return Column(
       children: [
         LinearProgressIndicator(value: (_currentIdx + 1) / _questions.length),
+        if (showSectionHeader)
+          Container(
+            width: double.infinity,
+            color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(currentSection!.title,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                if (currentSection.description.isNotEmpty)
+                  Text(currentSection.description,
+                    style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
+              ],
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
