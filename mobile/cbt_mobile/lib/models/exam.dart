@@ -183,6 +183,7 @@ class Exam {
   final List<Question> questions;
   final List<Section> sections;
   final List<Stream> streams;
+  final String hmacSecret;
 
   Exam({
     required this.id,
@@ -192,6 +193,7 @@ class Exam {
     this.questions = const [],
     this.sections = const [],
     this.streams = const [],
+    this.hmacSecret = '',
   });
 
   factory Exam.fromJson(Map<String, dynamic> json) {
@@ -209,6 +211,7 @@ class Exam {
       streams: json['streams'] != null
           ? (json['streams'] as List).map((s) => Stream.fromJson(s)).toList()
           : const [],
+      hmacSecret: json['hmac_secret'] ?? '',
     );
   }
 

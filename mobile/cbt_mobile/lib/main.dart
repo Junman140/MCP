@@ -5,6 +5,7 @@ import 'models/exam.dart';
 import 'services/exam_service.dart';
 import 'services/sync_service.dart';
 import 'services/randomization_engine.dart';
+import 'services/security_service.dart';
 import 'services/snitch_protocol.dart';
 import 'services/lms_auth_service.dart';
 import 'widgets/question_widget.dart';
@@ -313,6 +314,15 @@ class _ExamScreenState extends State<ExamScreen> with SnitchProtocol {
   Future<void> _loadExam() async {
     try {
       final exam = await _examService.downloadAndDecryptExam(widget.examId);
+      // Persist the HMAC secret delivered inside the encrypted package so that
+      // all subsequent signed calls (submit, results, telemetry, uploads) use
+      // the same secret the server expects.
+      await SecurityService.saveSession(
+        widget.examId,
+        AppConfig.encryptionKey,
+        exam.hmacSecret,
+        widget.authToken,
+      );
       final examDir = await _examService.getExamDir(widget.examId);
 
       // Flatten the exam's sections into a linear question list while keeping

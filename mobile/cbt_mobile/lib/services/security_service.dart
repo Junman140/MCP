@@ -63,9 +63,11 @@ class SecurityService {
   }
 
   // ─── Nonce Generation ─────────────────
+  // Must match the server's AntiReplayMiddleware exactly:
+  //   expected = hex(SHA256( timestamp_string_bytes || secret_bytes ))[:16]
   static String generateNonce(int timestamp, String secret) {
-    final hmac = Hmac(sha256, utf8.encode(secret));
-    final digest = hmac.convert(utf8.encode(timestamp.toString()));
+    final bytes = utf8.encode(timestamp.toString()) + utf8.encode(secret);
+    final digest = sha256.convert(bytes);
     return digest.toString().substring(0, 16);
   }
 
