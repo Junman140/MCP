@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../config.dart';
@@ -9,6 +8,7 @@ class TelemetryClient {
   final String examId;
   final String studentId;
   final String hmacSecret;
+  final String authToken;
   final Dio _dio;
 
   Timer? _heartbeatTimer;
@@ -18,7 +18,8 @@ class TelemetryClient {
     required this.examId,
     required this.studentId,
     required this.hmacSecret,
-  }) : _dio = SecurityService.createPinnedDio(connectTimeout: const Duration(seconds: 5));
+    required this.authToken,
+  }) : _dio = SecurityService.createSignedDio(authToken: authToken, hmacSecret: hmacSecret);
 
   void startHeartbeat({int intervalMs = 5000}) {
     if (_isRunning) return;
@@ -26,7 +27,7 @@ class TelemetryClient {
 
     _heartbeatTimer = Timer.periodic(
       Duration(milliseconds: intervalMs),
-      (_) => _sendHeartbeat('active', true, null),
+      (_) => _send('active', true, null),
     );
 
     debugPrint('[TelemetryClient] Heartbeat started (every ${intervalMs}ms)');
@@ -39,46 +40,28 @@ class TelemetryClient {
     debugPrint('[TelemetryClient] Heartbeat stopped');
   }
 
-  Future<void> _sendHeartbeat(String status, bool focus, String? violation) async {
+  Future<void> _send(String status, bool focus, String? violation) async {
     try {
-      final body = json.encode({
+      final body = {
         'student_id': studentId,
         'exam_id': examId,
         'status': status,
         'focus': focus,
-        if (violation != null) 'violation': violation,
-      });
-
-      final ts = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
-      final nonce = SecurityService.generateNonce(ts, hmacSecret);
-      // Truncated HMAC for lightweight header
-      final bodySig = SecurityService.deriveHmacKeyHex(
-        '${examId}_${ts}_body',
-        hmacSecret,
-      ).substring(0, 16);
+        if (violation != null && violation.isNotEmpty) 'violation': violation,
+      };
 
       await _dio.post(
         '${AppConfig.apiBaseUrl}/api/v1/telemetry',
         data: body,
-        options: Options(headers: {
-          'X-Timestamp': ts.toString(),
-          'X-Nonce': nonce,
-          'X-Signature': bodySig,
-          'Content-Type': 'application/json',
-        }),
       );
     } catch (e) {
-      debugPrint('[TelemetryClient] Failed to send heartbeat: $e');
+      debugPrint('[TelemetryClient] Failed to send telemetry: $e');
     }
   }
 
-  Future<void> sendViolation(String reason) async {
-    await _sendHeartbeat('violation', false, reason);
-  }
+  Future<void> sendViolation(String reason) => _send('violation', false, reason);
 
-  Future<void> sendSubmission(String status) async {
-    await _sendHeartbeat(status, false, null);
-  }
+  Future<void> sendSubmission(String status) => _send(status, false, null);
 
   void dispose() {
     stopHeartbeat();

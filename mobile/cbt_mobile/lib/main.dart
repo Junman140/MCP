@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'models/exam.dart';
@@ -7,6 +8,7 @@ import 'services/sync_service.dart';
 import 'services/randomization_engine.dart';
 import 'services/security_service.dart';
 import 'services/snitch_protocol.dart';
+import 'services/telemetry_client.dart';
 import 'services/lms_auth_service.dart';
 import 'widgets/question_widget.dart';
 import 'config.dart';
@@ -287,6 +289,7 @@ class _ExamScreenState extends State<ExamScreen> with SnitchProtocol {
   Timer? _timer;
   Duration _remaining = Duration.zero;
   String _examDirPath = '';
+  TelemetryClient? _telemetry;
 
   @override
   bool get snitchEnabled => _exam?.rules.isProctored ?? true;
@@ -294,6 +297,7 @@ class _ExamScreenState extends State<ExamScreen> with SnitchProtocol {
   @override
   void onViolationDetected(String reason, int totalViolations) {
     if (!mounted) return;
+    _telemetry?.sendViolation(reason);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Proctoring alert: $reason'),
@@ -301,6 +305,21 @@ class _ExamScreenState extends State<ExamScreen> with SnitchProtocol {
         duration: const Duration(seconds: 3),
       ),
     );
+  }
+
+  /// Extract the JWT `sub` (student id) used to tag telemetry events.
+  String _studentIdFromToken() {
+    try {
+      final parts = widget.authToken.split('.');
+      if (parts.length != 3) return '';
+      var b64 = parts[1].replaceAll('-', '+').replaceAll('_', '/');
+      while (b64.length % 4 != 0) b64 += '=';
+      final payload = json.decode(utf8.decode(base64Url.decode(b64)));
+      final sub = payload['sub'];
+      return sub == null ? '' : sub.toString();
+    } catch (_) {
+      return '';
+    }
   }
 
   @override
@@ -324,6 +343,20 @@ class _ExamScreenState extends State<ExamScreen> with SnitchProtocol {
         widget.authToken,
       );
       final examDir = await _examService.getExamDir(widget.examId);
+
+      // Start proctoring telemetry (heartbeats + violation events) so the
+      // admin proctoring dashboard and /proctoring/report are populated.
+      if (exam.rules.isProctored && exam.hmacSecret.isNotEmpty) {
+        final session = await SecurityService.loadSession();
+        final sid = _studentIdFromToken();
+        _telemetry = TelemetryClient(
+          examId: widget.examId,
+          studentId: sid,
+          hmacSecret: session['hmac_secret'] ?? '',
+          authToken: widget.authToken,
+        );
+        _telemetry!.startHeartbeat();
+      }
 
       // Flatten the exam's sections into a linear question list while keeping
       // each question's owning section so we can show section headers. Shuffling
@@ -461,6 +494,7 @@ class _ExamScreenState extends State<ExamScreen> with SnitchProtocol {
 
   @override
   void dispose() {
+    _telemetry?.dispose();
     _timer?.cancel();
     super.dispose();
   }

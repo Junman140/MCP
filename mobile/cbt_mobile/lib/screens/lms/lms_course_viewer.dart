@@ -1,5 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import '../../services/lms_api_client.dart';
+
+/// Convert a video/resource URL into an embeddable form (YouTube, Vimeo, etc.).
+/// Links are the primary path; HLS/file streams remain an alternative handled
+/// separately by the player when a direct media URL is supplied.
+String? toEmbedUrl(String? raw) {
+  if (raw == null || raw.isEmpty) return null;
+  try {
+    final u = Uri.parse(raw);
+    final host = u.host.replaceAll(RegExp(r'^www\.'), '');
+    if (host == 'youtube.com' || host == 'm.youtube.com') {
+      final id = u.queryParameters['v'];
+      if (id != null && id.isNotEmpty) return 'https://www.youtube.com/embed/$id';
+    } else if (host == 'youtu.be') {
+      final id = u.pathSegments.where((s) => s.isNotEmpty).firstOrNull;
+      if (id != null) return 'https://www.youtube.com/embed/$id';
+    } else if (host == 'vimeo.com') {
+      final id = u.pathSegments.where((s) => s.isNotEmpty).firstOrNull;
+      if (id != null) return 'https://player.vimeo.com/video/$id';
+    }
+    return raw;
+  } catch (_) {
+    return raw;
+  }
+}
 
 class LmsCourseViewerScreen extends StatefulWidget {
   final String courseId;
@@ -91,15 +116,8 @@ class _LmsCourseViewerScreenState extends State<LmsCourseViewerScreen> {
             const SizedBox(height: 4),
             Text((_selectedItem!['type'] as String? ?? '').toUpperCase(),
               style: const TextStyle(fontSize: 11, color: Colors.grey)),
-            if (_selectedItem!['url'] != null && (_selectedItem!['url'] as String).isNotEmpty) ...[
-              const SizedBox(height: 8),
-              const Text('Resource link:', style: TextStyle(fontSize: 12, color: Colors.grey)),
-              SelectableText(_selectedItem!['url'] as String, style: const TextStyle(color: Colors.blue)),
-            ],
-            if (_selectedItem!['body'] != null && (_selectedItem!['body'] as String).isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(_selectedItem!['body'] as String),
-            ],
+            const SizedBox(height: 12),
+            _ItemContent(item: _selectedItem!),
             const SizedBox(height: 8),
             FilledButton.tonal(onPressed: () async {
               await LmsApiClient.post('/student/progress/${widget.courseId}', data: {
@@ -112,5 +130,46 @@ class _LmsCourseViewerScreenState extends State<LmsCourseViewerScreen> {
         ),
       ]),
     );
+  }
+}
+
+/// Renders a course content item. Links (YouTube, Vimeo, etc.) are embedded
+/// via WebView as the primary path; text bodies render inline.
+class _ItemContent extends StatelessWidget {
+  final Map<String, dynamic> item;
+  const _ItemContent({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final type = (item['type'] as String? ?? '').toLowerCase();
+    final url = item['url'] as String?;
+
+    if ((type == 'video' || type == 'link' || type == 'url') && url != null && url.isNotEmpty) {
+      final embed = toEmbedUrl(url);
+      if (embed != null) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            height: 220,
+            child: WebViewWidget(
+              controller: WebViewController()
+                ..setJavaScriptMode(JavaScriptMode.unrestricted)
+                ..loadRequest(Uri.parse(embed)),
+            ),
+          ),
+        );
+      }
+    }
+
+    if (type == 'text') {
+      final text = (item['body'] as String?) ?? (item['description'] as String?) ?? '';
+      if (text.isNotEmpty) return Text(text);
+    }
+
+    if (url != null && url.isNotEmpty) {
+      return SelectableText(url, style: const TextStyle(color: Colors.blue));
+    }
+
+    return const Text('No preview available for this item.', style: TextStyle(color: Colors.grey));
   }
 }
