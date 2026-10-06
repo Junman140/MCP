@@ -86,8 +86,21 @@ class _LmsCourseViewerScreenState extends State<LmsCourseViewerScreen> {
         if (_selectedItem != null) Container(
           padding: const EdgeInsets.all(16),
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          child: Row(children: [
-            Expanded(child: Text(_selectedItem!['title'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.bold))),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(_selectedItem!['title'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text((_selectedItem!['type'] as String? ?? '').toUpperCase(),
+              style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            if (_selectedItem!['url'] != null && (_selectedItem!['url'] as String).isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Text('Resource link:', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              SelectableText(_selectedItem!['url'] as String, style: const TextStyle(color: Colors.blue)),
+            ],
+            if (_selectedItem!['body'] != null && (_selectedItem!['body'] as String).isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(_selectedItem!['body'] as String),
+            ],
+            const SizedBox(height: 8),
             FilledButton.tonal(onPressed: () async {
               await LmsApiClient.post('/student/progress/${widget.courseId}', data: {
                 'moduleId': _selectedModule,
