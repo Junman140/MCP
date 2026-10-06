@@ -65,6 +65,22 @@ class _LmsPaymentsScreenState extends State<LmsPaymentsScreen> with SingleTicker
     }
   }
 
+  Future<void> _mockPay(String invoiceId) async {
+    try {
+      await LmsApiClient.post('/payments/invoices/$invoiceId/mock-pay');
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment successful (demo). Receipt generated.')),
+      );
+      await _fetchData();
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment failed: $e')),
+      );
+    }
+  }
+
   Future<void> _downloadReceipt(String invoiceId) async {
     try {
       final receiptRes = await LmsApiClient.get('/payments/invoices/$invoiceId/receipt');
@@ -223,9 +239,9 @@ class _LmsPaymentsScreenState extends State<LmsPaymentsScreen> with SingleTicker
                             tooltip: 'Download Receipt',
                           )
                         : status == 'AWAITING_PAYMENT'
-                            ? TextButton(
-                                onPressed: null,
-                                child: const Text('View'))
+                            ? FilledButton(
+                                onPressed: _loading ? null : () => _mockPay(inv['id']),
+                                child: const Text('Pay (Demo)'))
                             : null,
                     isThreeLine: true,
                   ),
@@ -308,6 +324,19 @@ class _LmsPaymentsScreenState extends State<LmsPaymentsScreen> with SingleTicker
         ),
       ),
       const SizedBox(height: 16),
+      if ((inv['status'] as String? ?? 'AWAITING_PAYMENT') == 'AWAITING_PAYMENT')
+        FilledButton.icon(
+          icon: const Icon(Icons.account_balance_wallet),
+          label: const Text('Pay Now (Demo)'),
+          onPressed: _loading ? null : () => _mockPay(inv['id']),
+        )
+      else
+        FilledButton.icon(
+          icon: const Icon(Icons.download),
+          label: const Text('Download Receipt'),
+          onPressed: () => _downloadReceipt(inv['id']),
+        ),
+      const SizedBox(height: 8),
       FilledButton.icon(
         icon: const Icon(Icons.refresh),
         label: const Text('Check Payment Status'),
