@@ -6,6 +6,7 @@ import 'package:encrypt/encrypt.dart' as enc;
 import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
 import '../models/exam.dart';
+import 'security_service.dart';
 
 class ExamService {
   final String baseUrl;
@@ -92,5 +93,20 @@ class ExamService {
     }
 
     return Exam.fromJson(json.decode(examJson));
+  }
+
+  /// Fetches this student's results for an exam (HMAC-signed, mobile group).
+  Future<List<dynamic>> fetchStudentResults({
+    required String examId,
+    required String studentId,
+  }) async {
+    final session = await SecurityService.loadSession();
+    final hmacSecret = session['hmac_secret'] ?? '';
+    final dio = SecurityService.createSignedDio(authToken: authToken, hmacSecret: hmacSecret);
+    final resp = await dio.get(
+      '$baseUrl/api/v1/student/results',
+      queryParameters: {'student_id': studentId, 'exam_id': examId},
+    );
+    return (resp.data is List) ? resp.data as List<dynamic> : <dynamic>[];
   }
 }

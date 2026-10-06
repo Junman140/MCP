@@ -102,22 +102,37 @@ class _HmacSigningInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    if (options.data != null) {
-      final bodyStr = options.data is String ? options.data : json.encode(options.data);
-      final bodyBytes = utf8.encode(bodyStr);
-
-      final ts = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
-      final hmac = Hmac(sha256, utf8.encode(hmacSecret));
-      final signature = hmac.convert(bodyBytes).toString();
-      final nonce = Hmac(sha256, utf8.encode(hmacSecret))
-          .convert(utf8.encode(ts.toString()))
-          .toString()
-          .substring(0, 16);
-
-      options.headers['X-Timestamp'] = ts.toString();
-      options.headers['X-Nonce'] = nonce;
-      options.headers['X-Signature'] = signature;
+    // Sign every request (including GET) so the server's anti-replay + HMAC
+    // verification passes. For requests without a body, sign the empty body.
+    // FormData (multipart uploads) can't be JSON-encoded; sign an empty body
+    // placeholder for those.
+    String bodyStr;
+    if (options.data == null) {
+      bodyStr = '';
+    } else if (options.data is String) {
+      bodyStr = options.data as String;
+    } else if (options.data is FormData) {
+      bodyStr = '';
+    } else {
+      try {
+        bodyStr = json.encode(options.data);
+      } catch (_) {
+        bodyStr = '';
+      }
     }
+    final bodyBytes = utf8.encode(bodyStr);
+
+    final ts = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+    final hmac = Hmac(sha256, utf8.encode(hmacSecret));
+    final signature = hmac.convert(bodyBytes).toString();
+    final nonce = Hmac(sha256, utf8.encode(hmacSecret))
+        .convert(utf8.encode(ts.toString()))
+        .toString()
+        .substring(0, 16);
+
+    options.headers['X-Timestamp'] = ts.toString();
+    options.headers['X-Nonce'] = nonce;
+    options.headers['X-Signature'] = signature;
     handler.next(options);
   }
 }

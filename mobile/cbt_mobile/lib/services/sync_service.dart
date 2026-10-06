@@ -86,10 +86,9 @@ class SyncService {
       final examId = data['exam_id'] as String;
       final type = data['type'] as String? ?? 'answer';
 
-      final dio = Dio(BaseOptions(
-        connectTimeout: const Duration(seconds: 10),
-        headers: {'Authorization': 'Bearer $authToken'},
-      ));
+      final session = await SecurityService.loadSession();
+      final hmacSecret = session['hmac_secret'] ?? '';
+      final dio = SecurityService.createSignedDio(authToken: authToken, hmacSecret: hmacSecret);
 
       if (type == 'file_upload') {
         final paths = (data['file_paths'] as List<dynamic>?) ?? [];
@@ -119,10 +118,9 @@ class SyncService {
 
   Future<void> syncPendingSubmissions(String authToken) async {
     if (_submissionBox.isEmpty) return;
-    final dio = Dio(BaseOptions(
-      connectTimeout: const Duration(seconds: 10),
-      headers: {'Authorization': 'Bearer $authToken'},
-    ));
+    final session = await SecurityService.loadSession();
+    final hmacSecret = session['hmac_secret'] ?? '';
+    final dio = SecurityService.createSignedDio(authToken: authToken, hmacSecret: hmacSecret);
 
     for (final key in _submissionBox.keys) {
       try {

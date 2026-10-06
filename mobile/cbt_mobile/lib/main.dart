@@ -11,6 +11,7 @@ import 'widgets/question_widget.dart';
 import 'config.dart';
 import 'screens/lms/lms_login_screen.dart';
 import 'screens/lms/lms_dashboard.dart';
+import 'screens/results_screen.dart';
 
 final syncService = SyncService();
 
@@ -378,7 +379,17 @@ class _ExamScreenState extends State<ExamScreen> with SnitchProtocol {
     if (!mounted) return;
     final msg = autoSubmit ? 'Time expired. Exam auto-submitted.' : 'Exam submitted successfully.';
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.green));
-    Navigator.pop(context);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ResultsScreen(
+          examId: widget.examId,
+          studentId: widget.studentId,
+          authToken: widget.authToken,
+          examTitle: _exam?.metadata.title ?? '',
+        ),
+      ),
+    );
   }
 
   Future<bool> _onWillPop() async {
