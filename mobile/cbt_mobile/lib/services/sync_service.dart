@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../config.dart';
+import 'security_service.dart';
 
 class SyncService {
   late Box _submissionBox;

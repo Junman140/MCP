@@ -111,6 +111,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
         final maxScore = r['max_score'] ?? 0;
         final examTitle = r['exam_title'] ?? '';
         final perQ = grade?['per_question'] as Map<String, dynamic>? ?? {};
+        final feedback = grade?['feedback'] as String?;
 
         return Card(
           child: Padding(
@@ -140,11 +141,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w600)),
                   ],
                 ),
-                if (grade?['feedback'] != null && (grade!['feedback'] as String).isNotEmpty) ...[
+                if (feedback != null && feedback.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Text('Feedback', style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
-                  Text(grade!['feedback'] as String),
+                  Text(feedback),
                 ],
                 if (perQ.isNotEmpty) ...[
                   const SizedBox(height: 12),
