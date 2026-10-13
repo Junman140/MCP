@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../services/lms_api_client.dart';
+import '../../theme.dart';
 
 class LmsPaymentsScreen extends StatefulWidget {
   const LmsPaymentsScreen({super.key});
@@ -107,7 +108,7 @@ class _LmsPaymentsScreenState extends State<LmsPaymentsScreen> with SingleTicker
   Color _statusColor(String status) {
     switch (status) {
       case 'COMPLETE': case 'REMITTED': return Colors.green;
-      case 'COLLECTED': case 'REMITTING': return Colors.blue;
+      case 'COLLECTED': case 'REMITTING': return brandColor;
       case 'FAILED': case 'EXPIRED': return Colors.red;
       default: return Colors.orange;
     }
@@ -171,7 +172,7 @@ class _LmsPaymentsScreenState extends State<LmsPaymentsScreen> with SingleTicker
       onRefresh: _fetchData,
       child: ListView(padding: const EdgeInsets.all(16), children: [
         Row(children: [
-          _StatCard(label: 'Invoices', value: '${_summary!['totalInvoices']}', icon: Icons.receipt, color: Colors.blue),
+          _StatCard(label: 'Invoices', value: '${_summary!['totalInvoices']}', icon: Icons.receipt, color: brandColor),
           const SizedBox(width: 12),
           _StatCard(label: 'Completed', value: '${_summary!['completedPayments']}', icon: Icons.check_circle, color: Colors.green),
         ]),
@@ -267,7 +268,7 @@ class _LmsPaymentsScreenState extends State<LmsPaymentsScreen> with SingleTicker
         final serviceFee = (cm['serviceFee'] as num?) ?? 0;
         return Card(
           child: ListTile(
-            leading: const Icon(Icons.payment, color: Colors.blue),
+            leading: const Icon(Icons.payment, color: brandColor),
             title: Text(cm['label'] as String? ?? cm['feeType']),
             subtitle: Text('₦$amount + ₦$serviceFee processing fee'),
             trailing: FilledButton(

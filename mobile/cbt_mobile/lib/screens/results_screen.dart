@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config.dart';
+import '../theme.dart';
 import '../services/exam_service.dart';
 
 class ResultsScreen extends StatefulWidget {
@@ -128,7 +129,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       label: Text((status as String).toUpperCase()),
                       backgroundColor: status == 'graded'
                           ? Colors.green.shade100
-                          : Colors.blue.shade100,
+                           : brandColorLight,
                     ),
                     const Spacer(),
                     if (grade != null)

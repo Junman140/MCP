@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/lms_api_client.dart';
+import '../../theme.dart';
 import 'lms_course_viewer.dart';
 import 'lms_change_password_screen.dart';
 import 'lms_payments_screen.dart';
@@ -34,7 +35,7 @@ class LmsDashboardScreen extends StatelessWidget {
           return ListView(padding: const EdgeInsets.all(16), children: [
             Row(
               children: [
-                _StatCard(label: 'GPA', value: (gpa as num).toStringAsFixed(2), icon: Icons.analytics, color: Colors.blue),
+                _StatCard(label: 'GPA', value: (gpa as num).toStringAsFixed(2), icon: Icons.analytics, color: brandColor),
                 const SizedBox(width: 12),
                 _StatCard(label: 'Courses', value: '${courses.length}', icon: Icons.book, color: Colors.green),
                 const SizedBox(width: 12),
@@ -368,7 +369,7 @@ class _LmsMessagesPage extends StatelessWidget {
               leading: const Icon(Icons.message),
               title: Text((m as Map)['content']?.toString() ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
               subtitle: Text(m['createdAt']?.toString() ?? ''),
-              trailing: !(m['isRead'] as bool? ?? true) ? const Icon(Icons.circle, size: 8, color: Colors.blue) : null,
+              trailing: !(m['isRead'] as bool? ?? true) ? const Icon(Icons.circle, size: 8, color: brandColor) : null,
             )),
           ]);
         },

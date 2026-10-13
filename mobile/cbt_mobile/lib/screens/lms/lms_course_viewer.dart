@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../services/lms_api_client.dart';
+import '../../theme.dart';
 
 /// Convert a video/resource URL into an embeddable form (YouTube, Vimeo, etc.).
 /// Links are the primary path; HLS/file streams remain an alternative handled
@@ -167,7 +168,7 @@ class _ItemContent extends StatelessWidget {
     }
 
     if (url != null && url.isNotEmpty) {
-      return SelectableText(url, style: const TextStyle(color: Colors.blue));
+      return SelectableText(url, style: TextStyle(color: brandColor));
     }
 
     return const Text('No preview available for this item.', style: TextStyle(color: Colors.grey));

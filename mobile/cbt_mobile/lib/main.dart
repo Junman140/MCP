@@ -12,6 +12,7 @@ import 'services/telemetry_client.dart';
 import 'services/lms_auth_service.dart';
 import 'widgets/question_widget.dart';
 import 'config.dart';
+import 'theme.dart';
 import 'screens/lms/lms_login_screen.dart';
 import 'screens/lms/lms_dashboard.dart';
 import 'screens/results_screen.dart';
@@ -33,11 +34,9 @@ class CBTApp extends StatelessWidget {
     return MaterialApp(
       title: 'MCP CBT Platform',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: Colors.blue,
-        useMaterial3: true,
-        brightness: Brightness.light,
-      ),
+      theme: buildBrandTheme(Brightness.light),
+      darkTheme: buildBrandTheme(Brightness.dark),
+      themeMode: ThemeMode.system,
       home: const ModeSelectScreen(),
     );
   }
