@@ -60,7 +60,13 @@ class _ModeSelectScreenState extends State<ModeSelectScreen> {
   }
 
   Future<void> _checkLmsSession() async {
-    final loggedIn = await LmsAuthService.isLoggedIn();
+    bool loggedIn = false;
+    try {
+      loggedIn = await LmsAuthService.isLoggedIn();
+    } catch (_) {
+      // Secure storage unavailable (tests, unusual devices) — treat as logged out.
+      loggedIn = false;
+    }
     if (mounted) setState(() { _checking = false; _lmsLoggedIn = loggedIn; });
   }
 

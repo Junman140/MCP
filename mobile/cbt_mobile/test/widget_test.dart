@@ -1,19 +1,28 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:cbt_mobile/main.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  // flutter_secure_storage's platform channel is unavailable in tests;
+  // mock it so the app's session check resolves (logged-out state).
+  const channel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(channel, (call) async {
+    if (call.method == 'read') return null;
+    return null;
+  });
+
   testWidgets('CBTApp renders', (WidgetTester tester) async {
-    // Smoke test: the root widget builds and shows the app title.
     await tester.pumpWidget(CBTApp());
-    await tester.pumpAndSettle();
+    // First frame: loading spinner while the LMS session check resolves.
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 100));
+    // Session check completes (logged out) → mode-select screen appears.
     expect(find.text("MCP Platform"), findsOneWidget);
+    expect(find.text("Student Portal (LMS)"), findsOneWidget);
   });
 }
