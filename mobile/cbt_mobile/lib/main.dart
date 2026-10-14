@@ -312,7 +312,9 @@ class _ExamScreenState extends State<ExamScreen> with SnitchProtocol {
       final parts = widget.authToken.split('.');
       if (parts.length != 3) return '';
       var b64 = parts[1].replaceAll('-', '+').replaceAll('_', '/');
-      while (b64.length % 4 != 0) b64 += '=';
+      while (b64.length % 4 != 0) {
+        b64 += '=';
+      }
       final payload = json.decode(utf8.decode(base64Url.decode(b64)));
       final sub = payload['sub'];
       return sub == null ? '' : sub.toString();
@@ -551,12 +553,12 @@ class _ExamScreenState extends State<ExamScreen> with SnitchProtocol {
         if (showSectionHeader)
           Container(
             width: double.infinity,
-            color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
+            color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(currentSection!.title,
+                Text(currentSection.title,
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 if (currentSection.description.isNotEmpty)
                   Text(currentSection.description,

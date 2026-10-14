@@ -8,12 +8,12 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:cbt_mobile/main.dart';
-import 'package:cbt_mobile/services/sync_service.dart';
 
 void main() {
   testWidgets('CBTApp renders', (WidgetTester tester) async {
-    // No need to initialize Hive for this smoke test.
-    await tester.pumpWidget(CBTApp(syncService: SyncService()));
-    expect(find.text("MCP CBT Platform"), findsOneWidget);
+    // Smoke test: the root widget builds and shows the app title.
+    await tester.pumpWidget(CBTApp());
+    await tester.pumpAndSettle();
+    expect(find.text("MCP Platform"), findsOneWidget);
   });
 }
